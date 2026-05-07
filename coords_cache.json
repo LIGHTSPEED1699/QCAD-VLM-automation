@@ -1,0 +1,179 @@
+{
+  "3c105717222dee0b": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_0",
+    "theme": "default",
+    "coordinates": [
+      75,
+      150
+    ],
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346210.104568,
+    "last_accessed": 1777346210.1045682,
+    "hit_count": 0
+  },
+  "fee901e6cde87acd": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_1",
+    "theme": "default",
+    "coordinates": [
+      155,
+      85
+    ],
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346217.1322904,
+    "last_accessed": 1777346217.1322906,
+    "hit_count": 0
+  },
+  "63bb51a00c024a7b": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_2",
+    "theme": "default",
+    "coordinates": [
+      70,
+      80
+    ],
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346224.6955628,
+    "last_accessed": 1777346224.695563,
+    "hit_count": 0
+  },
+  "e91d0401c57c406a": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_3",
+    "theme": "default",
+    "coordinates": [
+      80,
+      140
+    ],
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346232.6699831,
+    "last_accessed": 1777346232.6699834,
+    "hit_count": 0
+  },
+  "4c3ed9ceb86aaeeb": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_4",
+    "theme": "default",
+    "coordinates": [
+      80,
+      120
+    ],
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346240.9166942,
+    "last_accessed": 1777346240.9166942,
+    "hit_count": 0
+  },
+  "9522cf92221ce1d4": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_5",
+    "theme": "default",
+    "coordinates": [
+      120,
+      160
+    ],
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346248.8267977,
+    "last_accessed": 1777346248.8267977,
+    "hit_count": 0
+  },
+  "5be2ba20bbbb922c": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_6",
+    "theme": "default",
+    "coordinates": [
+      120,
+      160
+    ],
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346256.368688,
+    "last_accessed": 1777346256.3686883,
+    "hit_count": 0
+  },
+  "9d1ad139dcf51c0d": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_7",
+    "theme": "default",
+    "coordinates": [
+      180,
+      180
+    ],
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346263.8608186,
+    "last_accessed": 1777346263.8608186,
+    "hit_count": 0
+  },
+  "0f4ac5f3b0564a5d": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_8",
+    "theme": "default",
+    "coordinates": null,
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346271.8387594,
+    "last_accessed": 1777346271.8387597,
+    "hit_count": 0
+  },
+  "33d4a7e03bb12244": {
+    "window_name": "QCAD",
+    "window_size": [
+      0,
+      0
+    ],
+    "element": "Click the line tool button_9",
+    "theme": "default",
+    "coordinates": [
+      150,
+      80
+    ],
+    "action": "click",
+    "confidence": 1.0,
+    "created": 1777346279.419855,
+    "last_accessed": 1777346279.4198554,
+    "hit_count": 0
+  }
+}

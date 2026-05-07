@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+build/
+dist/
+.DS_Store
+*.log
+node_modules/
+output.dwg
+*.png
+!task_*_context.png
+coords_cache.json
