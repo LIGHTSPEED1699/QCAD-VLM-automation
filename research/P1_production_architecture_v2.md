@@ -298,14 +298,14 @@ def verify_edit(original_dwg: Path, modified_dwg: Path, method: str) -> Verifica
 - [ ] Test Tier 1 + Tier 2 end-to-end on 10 sample DWGs with verification enabled
 
 ### Phase B: VLM Integration (Week 3–4)
-- [ ] Implement 3-phase VLM pipeline (T4 only)
-- [ ] Add `confidence_scorer.py` with all 4 scoring layers
-- [ ] Integrate `glm-ocr` for OCR specialist role
+- [x] Implement 3-phase VLM pipeline (T4 only)
+- [x] Add `confidence_scorer.py` with all 4 scoring layers
+- [x] Integrate `glm-ocr` for OCR specialist role
 - [ ] Benchmark qwen2.5vl:3b vs gemma4:e4b on 50 CAD screenshots
 
 ### Phase C: Production Hardening (Week 5–6)
-- [ ] Implement `review_queue.py` with Discord/email notification
-- [ ] Add `audit_logger.py` with tamper-evident log
+- [x] Implement `review_queue.py` with Discord/email notification
+- [x] Add `audit_logger.py` with tamper-evident log
 - [ ] Stress test: 100 annotation batch with mixed tiers
 - [ ] Document ODA File Converter xvfb pre-warming solution
 
