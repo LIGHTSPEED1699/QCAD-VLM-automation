@@ -73,7 +73,9 @@ PDF annotation → parse instruction → ezdxf.readfile() → modify entity → 
 
 **Performance:** <1s per edit. Zero GUI. Fully deterministic.
 
-**Limitation:** DXF only. For DWG input, requires Tier 3 bridge first.
+**Limitation:** DXF only. For DWG input, requires Tier 3 bridge first. Requires verification step for DWG round-trip fidelity.
+
+**Verification:** After ezdxf edit, render modified DXF to PNG/PDF via LibreCAD or QCAD headless and compare with original rendered output. Any visual discrepancy triggers Tier 2 fallback.
 
 ---
 
@@ -90,7 +92,7 @@ PDF annotation → generate edit.js → qcad -platform offscreen -autostart edit
 
 **Performance:** 3–10s startup + edit time. No X11 needed for offscreen mode.
 
-**Cost:** QCAD Pro ~$37 one-time (or use Community Edition for DXF-only).
+**Cost:** QCAD Pro license already purchased and installed in homelab. Community Edition available for DXF-only workflows.
 
 ---
 
@@ -105,7 +107,9 @@ input.dwg → ODAFileConverter (xvfb-run) → temp.dxf → ezdxf edit → temp_m
 
 **R2 validation:** Best free DWG↔DXF bridge for geometry preservation. Qt6 GUI requires `xvfb-run` (30s timeout issue — needs pre-warmed display or systemd service with persistent Xvfb).
 
-**Limitation:** Conversion only; no editing. Round-trip still risks entity loss for complex objects.
+**Limitation:** Conversion only; no editing. Round-trip still risks entity loss for complex objects. Requires visual verification after round-trip.
+
+**Verification:** After ODA round-trip (DWG→DXF→ezdxf edit→DXF→DWG), render both original and modified DWG to PDF via QCAD headless `dwg2pdf`, then pixel-diff or VLM-compare to confirm no unintended changes.
 
 ---
 
@@ -222,6 +226,65 @@ Per R4 VAUQ-inspired multi-layer scoring:
 | 10 | **Confidence Scorer** | `confidence_scorer.py` | Multi-layer scoring + gate logic | All | 🆕 NEW |
 | 11 | **Human Review Queue** | `review_queue.py` | SQLite queue for below-threshold tasks | All | 🆕 NEW |
 | 12 | **Audit Logger** | `audit_logger.py` | Immutable action log for compliance | All | 🆕 NEW |
+| 13 | **Visual Verifier** | `visual_verifier.py` | Render DWG/DXF to PDF/PNG + pixel-diff or VLM-compare to detect conversion artifacts | T1, T3 | 🆕 NEW |
+
+---
+
+## 7. Visual Verification Workflow (All Tiers)
+
+Per user's requirement: every DWG/DXF modification must have a verification step to catch conversion or editing artifacts.
+
+### Verification by Tier
+
+| Tier | Verification Method | Trigger | Fallback on Mismatch |
+|---|---|---|---|
+| **T1** (ezdxf DXF edit) | Render modified DXF → PDF via `librecad dxf2pdf` or `qcad -autostart render.js`; VLM-compare or pixel-diff vs original rendered PDF | After every `saveas()` | Escalate to T2 (QCAD ECMAScript native edit) |
+| **T2** (QCAD ECMAScript) | Render modified DWG → PDF via `dwg2pdf`; compare with pre-edit PDF | After `qcad -autostart` completes | Escalate to T4 (VLM + human review) |
+| **T3** (ODA round-trip) | Render both original and round-tripped DWG → PDF; pixel-diff or VLM-compare | After ODA `dxf2dwg` | Escalate to T2 (skip round-trip, edit DWG natively) |
+| **T4** (VLM+X11) | Post-action screenshot + VLM Phase 3 verification prompt | After every X11 action | Human review queue (already built into T4) |
+
+### Verification Implementation
+
+```python
+# Pseudocode for visual_verifier.py
+
+def verify_edit(original_dwg: Path, modified_dwg: Path, method: str) -> VerificationResult:
+    """
+    Render both to PDF/PNG and compare.
+    """
+    # Step 1: Render both files to PNG
+    original_png = render_to_png(original_dwg)   # qcad -autostart render.js
+    modified_png = render_to_png(modified_dwg)
+    
+    # Step 2: Pixel-level diff (fast, deterministic)
+    pixel_diff = compute_pixel_diff(original_png, modified_png)
+    
+    # Step 3: VLM semantic compare (slower, catches meaning-level changes)
+    if pixel_diff.changed_pixels > threshold:
+        vlm_verdict = vlm_compare(
+            original=original_png,
+            modified=modified_png,
+            instruction=annotation_text,
+            prompt="Did the intended change occur? Are there any unintended changes?"
+        )
+    
+    # Step 4: Decision
+    if vlm_verdict.confidence > 0.90 and vlm_verdict.unintended_changes == 0:
+        return PASSED
+    elif vlm_verdict.confidence > 0.75:
+        return WARNING  # log, continue with note
+    else:
+        return FAILED   # escalate to next tier or human review
+```
+
+### Rendering Options
+
+| Tool | Command | Headless? | Speed | Quality |
+|---|---|---|---|---|
+| **LibreCAD** | `librecad dxf2pdf -o out.pdf input.dxf` | ✅ Yes (`QT_QPA_PLATFORM=offscreen`) | Fast | Good for 2D |
+| **QCAD headless** | `qcad -platform offscreen -autostart render.js input.dwg` | ✅ Yes | Medium | Excellent (native engine) |
+| **ODA File Converter** | `ODAFileConverter input.dwg output.pdf "ACAD2018" "PDF"` | ⚠️ Needs xvfb | Slow | Excellent |
+| **ImageMagick** | `convert -density 300 input.pdf output.png` | ✅ Yes | Fast | DPI-controlled |
 
 ---
 
@@ -231,7 +294,8 @@ Per R4 VAUQ-inspired multi-layer scoring:
 - [ ] Implement `tier_router.py` — rule-based classifier
 - [ ] Enhance `dxf_editor.py` with batch annotation processing
 - [ ] Write `qcad_script_generator.py` — ECMAScript template engine
-- [ ] Test Tier 1 + Tier 2 end-to-end on 10 sample DWGs
+- [ ] Implement `visual_verifier.py` — render DWG/DXF to PDF/PNG via QCAD/LibreCAD headless, pixel-diff or VLM-compare for conversion artifact detection
+- [ ] Test Tier 1 + Tier 2 end-to-end on 10 sample DWGs with verification enabled
 
 ### Phase B: VLM Integration (Week 3–4)
 - [ ] Implement 3-phase VLM pipeline (T4 only)
