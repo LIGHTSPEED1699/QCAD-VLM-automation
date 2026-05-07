@@ -12,3 +12,9 @@ output.dwg
 *.png
 !task_*_context.png
 coords_cache.json
+
+# Test fixtures and working documents (sensitive / temporary)
+*.pdf
+*.dwg
+*.dxf
+test-files/
