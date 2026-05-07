@@ -70,8 +70,23 @@ class CoordinateTransformer:
     def find_window(self, fallback_names: List[str] = None) -> bool:
         """Find the QCAD window. Tries primary name, then fallbacks."""
         names_to_try = [self.window_name]
+        
+        # Default fallback chain matching QCADDualImageMatcher behavior
+        DEFAULT_FALLBACKS = [
+            "QCAD Professional",
+            "QCAD Trial",
+            "QCAD 3",
+            "RivieraWaves",
+        ]
+        for fb in DEFAULT_FALLBACKS:
+            if fb not in names_to_try:
+                names_to_try.append(fb)
+        
         if fallback_names:
-            names_to_try.extend(fallback_names)
+            for fb in fallback_names:
+                if fb not in names_to_try:
+                    names_to_try.append(fb)
+        
         # Also try the DWG filename without extension
         dwg_name = Path(self.dxf_path).stem
         if dwg_name not in names_to_try:
@@ -206,7 +221,11 @@ class CoordinateTransformer:
             )
 
             print(f"  Asking VLM to find '{entity.text}'...")
-            response = client.process_image(screenshot_path, prompt)
+            response = client.chat_with_image(
+                model=self.x11_controller.vision_model if hasattr(self, 'x11_controller') else 'gemma4:e4b',
+                prompt=prompt,
+                image_path=screenshot_path
+            )
             print(f"  VLM response: {response}")
 
             # Parse response
