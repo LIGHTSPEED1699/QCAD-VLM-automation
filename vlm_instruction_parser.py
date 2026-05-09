@@ -113,7 +113,23 @@ Respond with JSON only."""
             # Fallback: try to infer from raw text heuristically
             parsed = self._heuristic_parse(instruction)
 
-        confidence = float(parsed.get("confidence", parsed.get("confidence_score", 0.0)))
+        def _parse_confidence(val):
+            if val is None:
+                return 0.0
+            if isinstance(val, (int, float)):
+                return float(val)
+            if isinstance(val, str):
+                val_lower = val.lower().strip()
+                mapping = {"high": 0.9, "medium": 0.6, "low": 0.3, "very high": 0.95}
+                if val_lower in mapping:
+                    return mapping[val_lower]
+                try:
+                    return float(val)
+                except ValueError:
+                    return 0.0
+            return 0.0
+
+        confidence = _parse_confidence(parsed.get("confidence", parsed.get("confidence_score", 0.0)))
         action = parsed.get("action_type", "unknown")
 
         # Force human review for ambiguous actions or low confidence

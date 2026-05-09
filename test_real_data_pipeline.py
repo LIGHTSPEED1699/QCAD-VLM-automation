@@ -315,6 +315,9 @@ def main():
                 print(f"  SKIP: annot index {idx} out of range ({len(annots)})")
                 continue
             a = annots[idx]
+            # In live VLM mode, skip empty geometry markers (Polygons/Lines with no text)
+            if args.live_vlm and not a.text.strip():
+                continue
             res = run_pipeline(pid, a, use_live_vlm=args.live_vlm)
             all_results.append(asdict(res))
             print(f"  [{idx}] {a.annot_type}: {repr(a.text[:50])}")
