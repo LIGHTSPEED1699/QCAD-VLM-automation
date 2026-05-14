@@ -1,187 +1,116 @@
-# VLM-Based GUI Automation Toolkit for QCAD/LibreCAD
+# QCAD-VLM Automation
+Vision-Language Model (VLM) driven automation for QCAD/LibreCAD engineering workflows. Two complementary pipelines: (1) **DXF text-based editing** for batch entity operations (deletion, cloning, resizing, renaming) and (2) **VLM GUI automation** for screenshot-driven control.
 
-Vision-Language Model (VLM) driven GUI automation for CAD applications. Replaces brittle coordinate-clicking with AI that can "see" and reason about the UI.
+## Current Status (2026-05-14)
+- **Pair 1** (1.dwg + 1.pdf): 102 deletions (cloud + strikethrough), clean DWG delivered
+- **Pair 2** (2.dwg + 2.pdf): 17 deletions (LEFT-BOTTOM cloud relay cluster), clean DWG delivered
+- **Pair 3** (3.dwg + 3.pdf): T4/T5/T6 cloned to T7/T8/T9, `3_cloned_v2.dxf` ready for QCAD GUI verification. DXF→DWG conversion blocked by QCAD ODA handle-range bug.
 
-## What You Get
+## Pipelines
+### Pipeline A — DXF Text-Based Editing (Production Ready)
+Fast, zero-dependency text editing of DXF files via group-code patterns. No ezdxf or library parsing needed.
 
-- **`qcad_vlm_agent.py`** — Main automation loop: Screenshot → VLM → Action → Execute → Repeat
-- **`x11_controller.py`** — Pure Python X11 control (no xdotool needed). Window finding, clicking, typing, dragging
-- **`ollama_client.py`** — Ollama API client (local + cloud)
-- **`coordinate_cache.py`** — Hybrid cache: VLM discovers once, instant replay forever
+**Core scripts:**
+- `dxf_editor.py` — Entity deletion by handle (group code 5), layer color fixes, coordinate transforms
+- `pair1_fixed_executor.py` — Orchestrates full Pair N pipeline: PDF annotation extraction → coordinate mapping → entity matching → deletion → layer fix → DWG export
+- `coordinate_transformer.py` — PDF→DXF coordinate mapping (swap_xy confirmed for 1224×792 landscape)
+- `dwg_markup_pipeline.py` — PDF annotation parser + DXF entity matcher + handle list generation
 
-## Prerequisites
+**ECMAScript helpers:**
+- `scripts/qcad_entity_dump.js` — QCAD headless entity dump for debugging
+- `scripts/qcad_layer_diagnostic.js` — QCAD layer visibility diagnostic
+- `scripts/qcad_viewport_info.js` — QCAD viewport info export
 
 ```bash
-# Already done — virtual environment at vlm-gui-automation/venv/
-# Python packages installed: Pillow, mss, opencv-python-headless, python-xlib, pynput
-
-# System requirement: ImageMagick (for screenshots)
-sudo apt-get install -y imagemagick   # or already installed
+# Example: delete entities by handle list
+python pair1_fixed_executor.py \
+  --pdf 1.pdf --dxf 1.dxf \
+  --instructions "delete all entities inside the 4 cloud polygons and the strikethrough line" \
+  --output 1_FINAL.dwg
 ```
 
-## Quick Start
+### Pipeline B — VLM GUI Automation (Experimental)
+Screenshot → VLM reasoning → X11 control for hands-free QCAD manipulation.
 
-### 1. Test X11 Controller
+**Core scripts:**
+- `qcad_vlm_agent.py` — Main automation loop
+- `x11_controller.py` — Pure Python X11 control
+- `ollama_client.py` — Ollama API client (local + cloud)
+- `coordinate_cache.py` — Cache discovered coordinates for instant replay
 
 ```bash
 cd /home/hongbin/.openclaw/workspace/vlm-gui-automation
 source venv/bin/activate
 
-# Find a window
-python x11_controller.py find "QCAD"
-# Output: 12345678  (window ID)
-
-# Get window geometry
-python x11_controller.py geometry 12345678
-# Output: {'x': 100, 'y': 50, 'width': 1200, 'height': 800}
-
-# Click somewhere
-python x11_controller.py click 200 300
-
-# Take screenshot
-python x11_controller.py screenshot 12345678 /tmp/qcad_test.png
-```
-
-### 2. Test VLM with Screenshot
-
-```bash
-# Using your default kimi-k2.6:cloud model
-python ollama_client.py vision kimi-k2.6:cloud \
-  "What CAD tools do you see in this screenshot? List the toolbar buttons." \
-  /tmp/qcad_test.png
-```
-
-### 3. Run Full Automation
-
-```bash
-# Basic task — VLM will find and click the Line tool
+# Basic task
 python qcad_vlm_agent.py \
   --task "Select the line tool" \
   --model kimi-k2.6:cloud \
   --window-name "QCAD"
-
-# Drawing task (multi-step)
-python qcad_vlm_agent.py \
-  --task "Draw a rectangle from (0,0) to (100,100)" \
-  --model kimi-k2.6:cloud \
-  --max-steps 15 \
-  --delay 3.0
-
-# Use local model instead (no cloud dependency)
-python qcad_vlm_agent.py \
-  --task "Select the circle tool" \
-  --use-local \
-  --local-model gemma3:4b
 ```
 
-### 4. Coordinate Cache
+## Known Issues & Workarounds
+| Issue | Cause | Workaround |
+|---|---|---|
+| QCAD ODA drops cloned entities in DXF→DWG | Handle range collision (reassigns handles >0xFFFF or outside original space) | Use QCAD GUI "Open DXF → Save As DWG" manually; or accept DXF deliverables |
+| QCAD ODA strips BLOCK data (revision history) | ODA writer discards BLOCK section | Manual GUI Save As; or edit original DWG directly |
+| ezdxf `saveas()` crashes on this DXF | Malformed MATERIALS table | Use text-based `fix_layer_visibility.py` |
+| LibreDWG `dxf2dwg` corrupts output | Incompatible with AutoCAD 2018+; destroys HATCH handles | Never use; use QCAD ODA instead |
 
-After VLM discovers coordinates once, they're cached for instant replay:
+## File Map
+```
+├── dxf_editor.py                 # DXF text-based entity editor
+├── dwg_markup_pipeline.py        # Full pipeline: PDF → DXF matching
+├── pair1_fixed_executor.py       # Pair N orchestrator
+├── coordinate_transformer.py     # PDF↔DXF coordinate math
+├── dxf_action_pipeline.py        # DXF action dispatcher
+├── vlm_cloud_interpreter_v3.py   # VLM instruction parser (latest)
+├── vlm_disambiguator.py          # Cloud ambiguity resolver
+├── visual_verifier.py            # Overlay generation for human review
+├── confidence_scorer.py          # Match confidence scoring
+├── audit_logger.py               # Audit trail for all operations
+├── e2e_test_runner.py            # End-to-end test harness
+├── execute_and_review.py         # Execute + human review loop
+├── review_queue.py               # Pending review queue
+├── tier_router.py              # Tiered matching strategy router
+├── qcad_vlm_agent.py             # VLM GUI automation (Pipeline B)
+├── x11_controller.py             # X11 automation
+├── ollama_client.py              # Ollama API client
+├── coordinate_cache.py           # Coordinate cache
+├── scripts/                      # QCAD ECMAScript helpers
+│   ├── qcad_entity_dump.js
+│   ├── qcad_layer_diagnostic.js
+│   └── qcad_viewport_info.js
+└── references/                   # Documentation & ECMAScript API reference
+```
 
+## Prerequisites
 ```bash
-# View cache
-python coordinate_cache.py list
+# Python venv already configured at ./venv/
+source venv/bin/activate
+# Packages: Pillow, opencv-python-headless, python-xlib, pynput
 
-# Clear cache
-python coordinate_cache.py clear
-
-# Manual entry (if you know the coords)
-python coordinate_cache.py set "QCAD" 1200x800 "Line Tool" 45 30
+# External tools
+# QCAD Pro 3.32.7 — ~/opt/qcad-3.32.7-pro-linux-qt6-x86_64/
+#   CRITICAL: use qcad-bin directly with -platform offscreen
+# ODA File Converter — extracted AppImage in QCAD directory
+# LibreCAD 2.2.0 — rendering verification
+# LibreDWG 0.13.4 — dxf2dwg (NOT RECOMMENDED, corrupts)
 ```
 
-## Architecture
-
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   User Task     │────▶│  VLM Agent      │────▶│  X11 Controller │
-│ (e.g. "Draw     │     │                 │     │                 │
-│  rectangle")     │     │ 1. Screenshot   │     │ • find window   │
-└─────────────────┘     │ 2. Send to VLM  │     │ • raise window  │
-                        │ 3. Parse action   │     │ • click/type    │
-                        │ 4. Execute        │     │ • drag/screenshot│
-                        │ 5. Cache coords   │     │                 │
-                        │ 6. Loop/verify   │     │                 │
-                        └─────────────────┘     └─────────────────┘
-                                 ▲
-                                 │ screenshot feedback
-                                 └─────────────────┘
-```
-
-## VLM Prompt Template
-
-The agent sends screenshots with this structured prompt:
-
-```
-You are a GUI automation assistant. You can see a screenshot of a CAD application.
-
-Task: {user_task}
-
-Analyze the screenshot and:
-1. Identify the relevant toolbar buttons, menus, or canvas areas
-2. Provide the approximate center coordinates of UI elements to click
-3. If text input is needed, specify the exact text to type
-4. If the task appears complete, indicate completion
-
-Return your response in this exact format:
-OBSERVATION: <what you see>
-ACTION: <click|type|drag|menu_select|key_press|done>
-TARGET: <description of element>
-COORDINATES: (x, y)
-TEXT: <text to type>
-REASONING: <why you chose this action>
-```
-
-## Model Options
-
-### Cloud (via Ollama Cloud)
-- `kimi-k2.6:cloud` — Your current default, native multimodal
-- `qwen3.5:cloud` — Tuned for UI agents
-- `gemma3:cloud` / `gemma4:cloud` — Lightweight options
-
-### Local (RTX 3060 12GB)
-- `gemma3:4b` (~3–5GB VRAM) — Recommended starter
-- `qwen3.5:7b` (~5–7GB VRAM)
-- `llava:latest` (~5GB VRAM) — Classic VLM
-
-## Files
-
-```
-vlm-gui-automation/
-├── qcad_vlm_agent.py      # Main agent
-├── x11_controller.py      # X11 automation
-├── ollama_client.py       # API client
-├── coordinate_cache.py      # Coordinates cache
-├── venv/                  # Virtual environment
-└── coords_cache.json      # Generated cache file
-```
-
-## Troubleshooting
-
-**"Window not found"**
-- Check window name: `xwininfo -tree -root | grep -i qcad`
-- Try alternate names: `QCAD`, `LibreCAD`, `qcad`
-
-**"Cannot connect to X display"**
-- Ensure you're running on the same X11 session (not SSH without -X)
-- Check `$DISPLAY` is set
-
-**"VLM returns wrong coordinates"**
-- HiDPI scaling can confuse coordinates. The agent converts relative → absolute using window geometry
-- Add `--delay 3.0` to give UI time to settle between steps
-
-**"Model not responding"**
-- Check Ollama: `curl http://localhost:11434/api/tags`
-- For cloud models, verify Ollama Cloud key is configured
+## Coordinate Mapping (Confirmed)
+For 1224×792 landscape PDF → DXF:
+- `x_dxf = y_pdf / 72`
+- `y_dxf = (1224 - x_pdf) / 72`
+This is `swap_xy` with vertical flip. Confirmed across Pairs 1, 2, 3.
 
 ## Next Steps
-
-1. **Benchmark latency**: Time a simple task (e.g., "click the line tool") with different models
-2. **Build command library**: Cache common operations (select line, draw rectangle, zoom extents)
-3. **Integrate with OpenClaw**: Add `/qcad` slash command that calls this agent
-4. **Qt accessibility bridge**: If modifying QCAD source, expose toolbar metadata to skip VLM entirely for known elements
+- Resolve QCAD ODA handle bug for Pair 3 DWG export
+- Restore title-block revision rows (BLOCK data) in Pair 3
+- Build text-based DXF cloning without handle collisions
+- Integrate Pipeline A output with OpenClaw `/qcad` command
 
 ## Reference
-
 - Original proposal: `/home/hongbin/Documents/openclaw-shared/vlm-gui-automation-proposal.md`
+- ECMAScript API: `references/QCAD_ECMAScript_Reference.md`
 - X11 docs: https://python-xlib.readthedocs.io/
-- Ollama vision models: https://ollama.com/search?c=vision
